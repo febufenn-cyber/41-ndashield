@@ -78,62 +78,38 @@ State machine: `pending → done | failed`, a single hop (synchronous call).
 - **Provider**: Anthropic `claude-sonnet-4-6`, same as contract-reviewer.
 - **Prompt / core checklist**: the 17 checks are reused directly from
   contract-reviewer's existing `NDA_CHECKS` list (`src/prompt/nda.ts` in the
-  reference repo), which is itself derived from the Stanford ContractNLI
-  hypothesis set (CC BY 4.0 — attribution required, reuse permitted):
-  1. Sharing with the receiving party's employees
-  2. Sharing with third parties/contractors, and under what conditions
-  3. Use limited strictly to the stated purpose
-  4. Return or destruction of confidential information on termination/request
-  5. Survival of confidentiality obligations after termination, and duration
-  6. Prohibition on reverse engineering
-  7. Restrictions on copying confidential information
-  8. Confidentiality of the existence of the agreement/negotiations itself
-  9. No IP license granted by disclosure
-  10. Independent development carve-out
-  11. Exclusion of information obtained from third parties
-  12. Exclusion of publicly available information
-  13. Compelled disclosure (court/regulator) handling, with notice
-  14. Coverage of non-written/oral disclosures
-  15. Retention of copies required by law/archival policy
-  16. Notification obligation on breach or unauthorized disclosure
-  17. Specified remedies (injunctive relief, damages) for breach
-- **NDAShield-specific additions** (the two things the base 17-item list does
-  not cover, per the product spec): a **mutuality** check — is the NDA
-  presented as mutual but structurally one-sided (e.g. only one party has
-  disclosure obligations, or carve-outs apply asymmetrically) — and a
-  **survival** analysis — is there a survival clause at all, what obligations
-  survive, for how long, and is an indefinite/perpetual survival term flagged
-  as worth negotiating.
+  reference repo), itself derived from the Stanford ContractNLI hypothesis
+  set (CC BY 4.0 — attribution required, reuse permitted): (1) sharing with
+  the receiving party's employees; (2) sharing with third parties/
+  contractors and under what conditions; (3) use limited strictly to the
+  stated purpose; (4) return/destruction on termination or request; (5)
+  survival of obligations after termination, and duration; (6) prohibition
+  on reverse engineering; (7) restrictions on copying; (8) confidentiality of
+  the agreement's existence; (9) no IP license granted by disclosure; (10)
+  independent-development carve-out; (11) exclusion of third-party-sourced
+  information; (12) exclusion of publicly available information; (13)
+  compelled-disclosure handling, with notice; (14) coverage of non-written/
+  oral disclosures; (15) retention of copies required by law/archival
+  policy; (16) notification obligation on breach; (17) specified remedies
+  (injunctive relief, damages) for breach.
+- **NDAShield-specific additions** (beyond the base 17-item list, per the
+  product spec): a **mutuality** check — is the NDA presented as mutual but
+  structurally one-sided (e.g. only one party has disclosure obligations, or
+  carve-outs apply asymmetrically) — and a **survival** analysis — is there
+  a survival clause, what obligations survive, for how long, and is an
+  indefinite/perpetual term flagged as worth negotiating.
 - **Ingest**: native PDF `document` content block, exactly like
   contract-reviewer — no separate text extraction.
 - **Output**: `output_config: {format: {type: "json_schema", schema: NDA_SCHEMA}}`, `max_tokens: 8000` (17 fixed checks + two structured objects need far less output budget than contract-reviewer's open-ended clause list), single synchronous call.
 - **Schema sketch**:
 ```json
 {
-  "nda_type": "mutual | one_way | unclear",
-  "parties": ["string"],
-  "governing_law": "string",
-  "overall_risk": "low | medium | high",
-  "checks": [{
-    "hypothesis": "string",
-    "status": "found | missing | ambiguous",
-    "risk_level": "green | amber | red",
-    "snippet": "string",
-    "plain_english": "string"
-  }],
-  "mutuality": {
-    "presented_as": "mutual | one_way",
-    "actually_mutual": true,
-    "asymmetric_obligations": ["string"]
-  },
-  "survival": {
-    "clause_present": true,
-    "duration": "string",
-    "obligations_surviving": ["string"],
-    "flag": "string"
-  },
-  "top_risks": ["string"],
-  "questions_to_ask": ["string"]
+  "nda_type": "mutual | one_way | unclear", "parties": ["string"],
+  "governing_law": "string", "overall_risk": "low | medium | high",
+  "checks": [{ "hypothesis": "string", "status": "found | missing | ambiguous", "risk_level": "green | amber | red", "snippet": "string", "plain_english": "string" }],
+  "mutuality": { "presented_as": "mutual | one_way", "actually_mutual": true, "asymmetric_obligations": ["string"] },
+  "survival": { "clause_present": true, "duration": "string", "obligations_surviving": ["string"], "flag": "string" },
+  "top_risks": ["string"], "questions_to_ask": ["string"]
 }
 ```
 `checks` always has exactly 17 entries (one per hypothesis above) —
@@ -144,12 +120,11 @@ design (unlike contract-reviewer's open-ended clause discovery).
   commercial contract), well inside the 8K output cap and Cloudflare's ~100s
   window.
 - **Cost per operation**: for a ~3-page NDA, input ≈ 800 (system, cached) +
-  ~3K (PDF pages) ≈ 3.8K tokens; output ≈ 17 checks × ~120 tokens + mutuality
-  + survival + top_risks/questions ≈ 2.5K tokens. Cost ≈ 3.8K × $3/MTok +
-  2.5K × $15/MTok ≈ $0.011 + $0.038 ≈ $0.05 ≈ ₹4.4 at ~₹89/US$. Against
-  Rs99/review, LLM cost is ~4.5% of price — and notably this is roughly
-  half the per-op cost of contract-reviewer's own full contract review,
-  which is the concrete basis for "faster/cheaper per review" in the spec.
+  ~3K (PDF pages) ≈ 3.8K tokens; output ≈ 17 checks + mutuality/survival/
+  top_risks/questions ≈ 2.5K tokens. Cost ≈ 3.8K × $3/MTok + 2.5K × $15/MTok
+  ≈ $0.05 ≈ ₹4.4 at ~₹89/US$. Against Rs99/review, LLM cost is ~4.5% of
+  price — roughly half contract-reviewer's per-op cost, the concrete basis
+  for "faster/cheaper per review" in the spec.
 
 ## Frontend pages
 
